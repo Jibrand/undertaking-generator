@@ -42,6 +42,9 @@ function App() {
     setIsExporting(true)
     setNotice('')
     try {
+      if (share) {
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+      }
       const file = makePdf(documentLayout, image, values)
       if (share && typeof navigator.share === 'function' && navigator.canShare?.({ files: [file] })) {
         try {
@@ -85,7 +88,7 @@ function App() {
       <main className="shell workspace">
         <section className="editor">
           <h1>New undertaking</h1>
-          <form onSubmit={event => { event.preventDefault(); exportPdf(false) }}>
+          <form onSubmit={event => { event.preventDefault(); exportPdf(mobileDevice) }}>
             <div className="fields">
               {fields.map(({ name, label, ...attributes }) => (
                 <label key={name} className={name === 'party' || name === 'ntn' ? 'wide' : undefined}>
@@ -99,8 +102,15 @@ function App() {
             </div>
             {!documentLayout.fits && <p role="alert">Shorten the party name or invoice details to fit one page.</p>}
             <div className="actions" aria-busy={isExporting}>
-              <button className="primary" type="submit" disabled={!ready || isExporting}>Download PDF</button>
-              {mobileDevice && <button type="button" disabled={!ready || isExporting} onClick={() => exportPdf(true)}>Share PDF</button>}
+              {mobileDevice ? (
+                <button className="primary share-button" type="button" disabled={!ready || isExporting}
+                  onClick={() => exportPdf(true)}>
+                  {isExporting && <span className="share-spinner" aria-hidden="true" />}
+                  {isExporting ? 'Opening share menu...' : 'Share PDF'}
+                </button>
+              ) : (
+                <button className="primary" type="submit" disabled={!ready || isExporting}>Download PDF</button>
+              )}
             </div>
             <p role="status" className="notice">{notice}</p>
           </form>

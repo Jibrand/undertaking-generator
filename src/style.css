@@ -142,3 +142,27 @@ input:focus-visible, button:focus-visible {
 @media (min-width: 52rem) {
   .workspace { grid-template-columns: minmax(22rem, 26rem) minmax(0, 1fr); }
 }
+
+.actions .share-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+}
+
+.share-spinner {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: share-spin 0.7s linear infinite;
+}
+
+@keyframes share-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .share-spinner { animation: none; }
+}
