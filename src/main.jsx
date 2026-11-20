@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { layout, letterhead, makePdf, page } from './undertaking'
 import './style.css'
@@ -14,10 +14,14 @@ const mobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
 
 
+const emptyValues = { party: '', ntn: '', invoice: '', date: '' }
+
 function App() {
-  const [values, setValues] = useState({ party: '', ntn: '', invoice: '', date: '' })
+  const [values, setValues] = useState(emptyValues)
   const [image, setImage] = useState(null)
   const [notice, setNotice] = useState('')
+  const [isExporting, setIsExporting] = useState(false)
+  const exportInProgress = useRef(false)
   const documentLayout = layout(values)
   const ready = Object.values(values).every(value => value.trim()) && documentLayout.fits && image
 
@@ -33,13 +37,16 @@ function App() {
   }, [])
 
   async function exportPdf(share) {
-    if (!ready) return
+    if (!ready || exportInProgress.current) return
+    exportInProgress.current = true
+    setIsExporting(true)
     setNotice('')
     try {
       const file = makePdf(documentLayout, image, values)
       if (share && typeof navigator.share === 'function' && navigator.canShare?.({ files: [file] })) {
         try {
           await navigator.share({ files: [file] })
+          setValues(current => current === values ? emptyValues : current)
           return
         } catch (error) {
           if (error.name === 'AbortError') return
@@ -50,6 +57,7 @@ function App() {
       link.href = url
       link.download = file.name
       link.click()
+      setValues(current => current === values ? emptyValues : current)
       window.setTimeout(() => URL.revokeObjectURL(url), 30_000)
       if (!share) {
         setNotice('PDF downloaded.')
@@ -60,6 +68,9 @@ function App() {
       }
     } catch {
       setNotice('The PDF could not be exported. Please try again.')
+    } finally {
+      exportInProgress.current = false
+      setIsExporting(false)
     }
   }
 
@@ -87,9 +98,9 @@ function App() {
               ))}
             </div>
             {!documentLayout.fits && <p role="alert">Shorten the party name or invoice details to fit one page.</p>}
-            <div className="actions">
-              <button className="primary" type="submit" disabled={!ready}>Download PDF</button>
-              {mobileDevice && <button type="button" disabled={!ready} onClick={() => exportPdf(true)}>Share PDF</button>}
+            <div className="actions" aria-busy={isExporting}>
+              <button className="primary" type="submit" disabled={!ready || isExporting}>Download PDF</button>
+              {mobileDevice && <button type="button" disabled={!ready || isExporting} onClick={() => exportPdf(true)}>Share PDF</button>}
             </div>
             <p role="status" className="notice">{notice}</p>
           </form>
